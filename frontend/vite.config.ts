@@ -14,6 +14,23 @@ export default defineConfig({
     global: 'globalThis',
   },
   resolve: {
+    // The Midnight WASM runtimes define their classes (e.g.
+    // ContractMaintenanceAuthority) inside wasm-bindgen glue, so class identity
+    // is bound to a single WebAssembly instance. If the browser resolves more
+    // than one copy of a runtime package (e.g. the compiled contract at the
+    // repo root resolving `@midnight-ntwrk/compact-runtime` from the root
+    // `node_modules` while the SDK resolves it from `frontend/node_modules`),
+    // `instanceof` checks across the copies fail and the deployment errors with
+    // "expected instance of ContractMaintenanceAuthority". Deduping the runtime
+    // packages forces every importer to one physical copy.
+    //
+    // See https://github.com/midnightntwrk/midnight-js/issues/1052.
+    dedupe: [
+      '@midnight-ntwrk/compact-runtime',
+      '@midnight-ntwrk/onchain-runtime-v3',
+      '@midnight-ntwrk/ledger-v8',
+      '@midnight-ntwrk/compact-js',
+    ],
     alias: {
       process: 'process/browser',
       buffer: 'buffer',

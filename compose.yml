@@ -16,7 +16,9 @@ services:
     image: midnightntwrk/midnight-node:1.0.0
     container_name: salary-benchmarking-node
     ports:
-      - "9940:9940"
+      # The node serves its JSON-RPC/WSS interface on 9944; publish that on the
+      # host port 9940 so the repo tooling (ws://127.0.0.1:9940) works unchanged.
+      - "9940:9944"
     environment:
       CFG_PRESET: "dev"
       SIDECHAIN_BLOCK_BENEFICIARY: "04bcf7ad3be7a5c790460be82a713af570f22e0f801f6659ab8e84a52be6969e"
@@ -24,7 +26,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -sf -H 'Content-Type: application/json' -d '{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"chain_getBlockHash\",\"params\":[1]}' http://localhost:9940 | grep -q '\"result\":\"0x'",
+          "curl -sf -H 'Content-Type: application/json' -d '{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"chain_getBlockHash\",\"params\":[1]}' http://localhost:9944 | grep -q '\"result\":\"0x'",
         ]
       interval: 2s
       timeout: 5s
@@ -36,16 +38,18 @@ services:
     container_name: salary-benchmarking-indexer
     restart: on-failure
     ports:
-      - "8085:8085"
+      # indexer-standalone 4.x serves its GraphQL API on 8088; publish that on
+      # host 8085 so the repo tooling (http://127.0.0.1:8085) works unchanged.
+      - "8085:8088"
     environment:
       RUST_LOG: "indexer=info,chain_indexer=info,indexer_api=info,wallet_indexer=info,indexer_common=info,fastrace_opentelemetry=off,info"
       APP__APPLICATION__NETWORK_ID: "undeployed"
-      APP__INFRA__NODE__URL: "ws://node:9940"
+      APP__INFRA__NODE__URL: "ws://node:9944"
       APP__INFRA__STORAGE__PASSWORD: "indexer"
       APP__INFRA__PUB_SUB__PASSWORD: "indexer"
       APP__INFRA__LEDGER_STATE_STORAGE__PASSWORD: "indexer"
       APP__INFRA__SECRET: "303132333435363738393031323334353637383930313233343536373839303132"
-      APP__INFRA__SPO_NODE__URL: "ws://node:9940"
+      APP__INFRA__SPO_NODE__URL: "ws://node:9944"
       APP__INFRA__SPO_NODE__BLOCKFROST_ID: "local-devnet-dummy-id"
     healthcheck:
       test: ["CMD-SHELL", "cat /var/run/indexer-standalone/running"]
@@ -62,11 +66,13 @@ services:
     container_name: salary-benchmarking-proof-server
     command: ["midnight-proof-server -v"]
     ports:
-      - "6305:6305"
+      # proof-server 8.x serves its HTTP API on 6300; publish that on host 6305
+      # so the repo tooling (http://127.0.0.1:6305) works unchanged.
+      - "6305:6300"
     environment:
       RUST_BACKTRACE: "full"
     healthcheck:
-      test: ["CMD-SHELL", "echo > /dev/tcp/127.0.0.1/6305"]
+      test: ["CMD-SHELL", "echo > /dev/tcp/127.0.0.1/6300"]
       interval: 10s
       timeout: 5s
       retries: 20

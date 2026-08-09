@@ -58,7 +58,8 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const ContractModule = await import(pathToFileURL(contractPath).href);
+type ContractModuleType = typeof import('../contracts/managed/confidential_salary_benchmarking/contract/index.js');
+const ContractModule = (await import(pathToFileURL(contractPath).href)) as ContractModuleType;
 
 const compiledContract = CompiledContract.make(
   'confidential_salary_benchmarking',

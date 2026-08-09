@@ -75,8 +75,35 @@ export function humanizeError(error: unknown): string {
   if (message.toLowerCase().includes('contract address not set')) {
     return 'Connect to (or deploy) a contract first, then create the backup from the Wallet & Contract panel.';
   }
+  // SDK password-strength policy messages (@midnight-ntwrk/midnight-js-utils).
+  // The UI validates the policy before submitting, but map these anyway so a
+  // rejection that slips through still reads clearly.
+  if (message.toLowerCase().includes('password is required for private state encryption')) {
+    return 'A password is required to encrypt this backup.';
+  }
+  if (message.toLowerCase().includes('password is shorter than 16 characters')) {
+    return 'The backup password must be at least 16 characters long.';
+  }
+  if (message.toLowerCase().includes('too many repeated characters')) {
+    return 'The backup password must not repeat the same character more than 3 times in a row.';
+  }
+  if (message.toLowerCase().includes('must contain at least 3 of')) {
+    return 'The backup password must combine at least 3 of: uppercase letters, lowercase letters, digits, special characters.';
+  }
+  if (message.toLowerCase().includes('sequential patterns')) {
+    return "The backup password must not contain predictable sequences (e.g. '1234', 'abcd').";
+  }
+  if (message.toLowerCase().includes('failed to decrypt export data')) {
+    return 'Could not restore this backup: the password is incorrect or the file has been changed. Enter the exact password you set when creating it — leave the field blank if you did not set one.';
+  }
+  if (message.toLowerCase().includes('invalid export format')) {
+    return 'This file is not a recognised Midnight backup. Restore a file previously downloaded from this app.';
+  }
+  if (message.toLowerCase().includes('import conflicts with')) {
+    return 'Some entries in this backup already exist in your wallet and were not overwritten.';
+  }
   if (message.toLowerCase().includes('export')) {
-    return 'The backup could not be exported. Check the password (minimum 16 characters, mixing uppercase, lowercase, digits and symbols) and try again.';
+    return 'The backup could not be exported. Check the password adheres to the policy shown under the password field, then try again.';
   }
 
   return message;

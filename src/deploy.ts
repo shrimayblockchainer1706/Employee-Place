@@ -109,7 +109,8 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const ContractModule = await import(pathToFileURL(contractPath).href);
+type ContractModuleType = typeof import('../contracts/managed/confidential_salary_benchmarking/contract/index.js');
+const ContractModule = (await import(pathToFileURL(contractPath).href)) as ContractModuleType;
 
 const compiledContract = CompiledContract.make(
   'confidential_salary_benchmarking',
@@ -179,7 +180,7 @@ async function main() {
       const start = Date.now();
       while (true) {
         await new Promise((r) => setTimeout(r, 10_000));
-        const s = await walletCtx.wallet.state().pipe(Rx.filter((x) => x.isSynced)).toPromise();
+        const s = await Rx.firstValueFrom(walletCtx.wallet.state().pipe(Rx.filter((x) => x.isSynced)));
         const tn = s.unshielded.balances[unshieldedToken().raw] ?? 0n;
         if (tn > 0n) {
           console.log(`\n  Funded! tNIGHT balance: ${tn.toLocaleString()}\n`);
@@ -201,7 +202,7 @@ async function main() {
 
   // Register for DUST.
   console.log('─── DUST Token Setup ───────────────────────────────────────────\n');
-  const dustState = await walletCtx.wallet.state().pipe(Rx.filter((s) => s.isSynced)).first();
+  const dustState = await Rx.firstValueFrom(walletCtx.wallet.state().pipe(Rx.filter((s) => s.isSynced)));
 
   const unregisteredUtxos = dustState.unshielded.availableCoins.filter(
     (c: any) => !c.meta?.registeredForDustGeneration,
@@ -209,7 +210,7 @@ async function main() {
   if (unregisteredUtxos.length > 0) {
     console.log(`  Registering ${unregisteredUtxos.length} NIGHT UTXOs for DUST generation...`);
     await submitWithRetry('DUST registration', async () => {
-      const fresh = await walletCtx.wallet.state().pipe(Rx.filter((s: any) => s.isSynced)).first();
+      const fresh = await Rx.firstValueFrom(walletCtx.wallet.state().pipe(Rx.filter((s: any) => s.isSynced)));
       const freshUtxos = fresh.unshielded.availableCoins.filter(
         (c: any) => !c.meta?.registeredForDustGeneration,
       );
@@ -226,11 +227,11 @@ async function main() {
 
   if (dustState.dust.balance(new Date()) === 0n) {
     console.log('  Waiting for DUST tokens...');
-    await walletCtx.wallet.state().pipe(
+    await Rx.firstValueFrom(walletCtx.wallet.state().pipe(
       Rx.throttleTime(5000),
       Rx.filter((s) => s.isSynced),
       Rx.filter((s) => s.dust.balance(new Date()) > 0n),
-    ).first();
+    ));
   }
   console.log('  DUST tokens ready!\n');
 

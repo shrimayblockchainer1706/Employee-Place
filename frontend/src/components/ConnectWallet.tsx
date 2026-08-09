@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMidnight } from '../hooks/useMidnight';
+import { humanizeError } from '../lib/errors';
 
 const NETWORKS: readonly { readonly id: string; readonly label: string }[] = [
   { id: 'preview', label: 'Preview' },
@@ -41,7 +42,7 @@ export default function ConnectWallet() {
       const freshAddress = await deploy(networkId);
       setAddressInput(freshAddress);
     } catch (error) {
-      setDeployError(error instanceof Error ? error.message : String(error));
+      setDeployError(humanizeError(error));
     }
   };
 

@@ -15,6 +15,7 @@
 import { useRef, useState, type RefObject } from 'react';
 import { useMidnight } from '../hooks/useMidnight';
 import { humanizeError } from '../lib/errors';
+import { validateBackupPassword } from '../lib/password-policy';
 import type {
   PrivateStateExport,
   SigningKeyExport,
@@ -44,13 +45,7 @@ export default function BackupPanel() {
 
   const disabled = isBusy || working;
 
-  const requirePassword = (): string | null => {
-    if (password.length === 0) return null;
-    if (password.length < 16) {
-      return 'The backup password must be at least 16 characters long to comply with the Mid Night storage policy. Leave it blank to use the app’s default storage password instead.';
-    }
-    return null;
-  };
+  const requirePassword = (): string | null => validateBackupPassword(password);
 
   const handleExportPrivate = async () => {
     setMessage(null);
@@ -179,7 +174,8 @@ export default function BackupPanel() {
           disabled={disabled}
         />
         <small className="muted">
-          If you set a password, remember it — you will need it to restore. Minimum 16 characters.
+          If you set a password, remember it — you will need it to restore. Minimum 16 characters, mixing at
+          least 3 of: uppercase, lowercase, digits, symbols, with no long repeated or predictable sequences.
         </small>
       </div>
 
