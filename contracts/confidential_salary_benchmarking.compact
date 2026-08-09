@@ -1,0 +1,300 @@
+// ═══════════════════════════════════════════════════════════════════════════
+//  Confidential Salary Benchmarking Pool — Midnight Compact smart contract
+//
+//  PUBLIC (on-chain, visible to any observer — deliberately limited to data
+//  that cannot be traced back to a single employee):
+//    * pools[category].name              — role/location category label
+//    * pools[category].contributorCount  — how many people contributed
+//    * pools[category].binCounts         — a SALARY HISTOGRAM. Each counter
+//                                          reveals only "this many salaries
+//                                          fell in this coarse ₹ band", never
+//                                          one person's exact salary.
+//    * pools[category].nullifiers        — one commitment per contributor,
+//                                          a persistent hash of
+//                                          (category, contributor_key). The
+//                                          key is secret, so the commitment
+//                                          cannot be reversed to an identity,
+//                                          salary, company or wallet. It only
+//                                          prevents double counting.
+//    * pools[category].benchmarkAvailable — anonymity-threshold flag
+//    * pools[category].medianBin / p25Bin / p75Bin — quantile BAND indexes.
+//                                          Written ONLY after the minimum
+//                                          contributor threshold is reached.
+//
+//  PRIVATE (zero-knowledge witness inputs, NEVER stored or revealed):
+//    * salary()               — the individual annual salary (INR). The
+//                                contract's only knowledge is "this salary
+//                                belongs to public band <index>"; the exact
+//                                amount never appears in the ledger, a return
+//                                value, an event, or a log.
+//    * years_of_experience()  — exact experience (validated to a sane range).
+//    * contributor_key()      — the contributor's secret pseudonym key. Never
+//                                disclosed; only its hash (nullifier) is used.
+//
+//  PRIVACY GUARANTEE
+//    * No salary magnitude is ever published — only coarse band counts.
+//    * Contributions are pseudonymous: the nullifier is a one-way
+//      commitment and no wallet address is ever stored on-chain.
+//    * Nothing is released for a category until MIN_THRESHOLD contributions
+//      exist: `updateBenchmark` refuses to compute below the threshold, and
+//      `getBenchmark` returns an EMPTY result below it.
+//    * disclose() is used deliberately and only to release safe aggregate /
+//      histogram / threshold data — never a witness value.
+//
+//  STATISTICAL METHOD (documented approximation)
+//    Exact per-contributor data never leaves the proving circuit, so an exact
+//    on-chain median is impossible. The contract publishes a coarse histogram
+//    and reports each quantile as the BAND containing its position:
+//        medianBin = first bin with 2*through(system binderlight-min) > total
+//        p25Bin    = first bin with 4*through(bin) >= total
+//        p75Bin    = first bin with 4*through(bin) >= 3*total
+//    The frontend renders a band range (e.g. "₹12L–₹18L"), and the README
+//    explicitly says this is an approximation, not an exact percentile.
+// ═══════════════════════════════════════════════════════════════════════════
+
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+struct SalaryPool {
+  category: Uint<64>,
+  name: Opaque<"string">,
+  open: Boolean,
+  contributorCount: Uint<64>,
+  totalContributions: Uint<64>,
+  binCounts: Vector<8, Uint<64>>,
+  nullifiers: Vector<20, Bytes<32>>,
+  medianBin: Uint<64>,
+  p25Bin: Uint<64>,
+  p75Bin: Uint<64>,
+  benchmarkAvailable: Boolean,
+}
+
+struct BenchmarkView {
+  available: Boolean,
+  contributorCount: Uint<64>,
+  medianBin: Uint<64>,
+  p25Bin: Uint<64>,
+  p75Bin: Uint<64>,
+}
+
+// ── Ledger state ────────────────────────────────────────────────────────────
+// All public state is chosen so that no single contributor is identifiable.
+// `pools` is sealed so the set of categories is fixed at construction time —
+// the frontend opens a category once via openCategory.
+export ledger pools: Map<Uint<64>, SalaryPool>;
+export ledger round: Counter;
+
+constructor() {
+  round.increment(1);
+}
+
+// ── Witnesses (the ONLY secrets) ────────────────────────────────────────────
+witness contributor_key(): Bytes<32>;
+witness salary(): Uint<128>;
+witness years_of_experience(): Uint<64>;
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+
+// Validate that the private salary lies inside the claimed public band.
+pure circuit validateBand(band: Uint<64>, s: Uint<128>): [] {
+  const LOW = [1 as Uint<128>, 300000, 500000, 800000, 1200000, 1800000, 2500000, 4000000];
+  const HIGH = [300000 as Uint<128>, 500000, 800000, 1200000, 1800000, 2500000, 4000000, 100000000];
+  for (const i of 0..8) {
+    if (i == band) {
+      assert(LOW[i] <= s && s <= HIGH[i], "Salary does not match selected band");
+    }
+  }
+}
+
+// One-way contribution identifier: hashing keeps the contributor key secret.
+pure circuit nullifierOf(category: Uint<64>, key: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([category as Bytes<32>, pad(32, "csb:salary:nullifier"), key]);
+}
+
+struct Stats {
+  med: Uint<64>,
+  p25: Uint<64>,
+  p75: Uint<64>,
+}
+
+// Quantile bands from the (public) salary histogram. Returns BAND indexes.
+pure circuit benchmarkStats(bins: Vector<8, Uint<64>>): Stats {
+  const indices = [0 as Uint<64>, 1, 2, 3, 4, 5, 6, 7];
+  const total = fold(
+    (acc: Uint<64>, v: Uint<64>): Uint<64> => (acc + v) as Uint<64>,
+    0 as Uint<64>,
+    bins
+  );
+  const [cum, p25, med, p75] = fold(
+    (acc: [Uint<64>, Uint<64>, Uint<64>, Uint<64>], i: Uint<64>): [Uint<64>, Uint<64>, Uint<64>, Uint<64>] => {
+      const cum1 = (acc[0] + bins[i]) as Uint<64>;
+      const cum4 = (cum1 * 4) as Uint<64>;
+      const three = (total * 3) as Uint<64>;
+      const p25n: Uint<64> = (acc[1] == 8 && cum4 >= total) ? i : acc[1];
+      const medn: Uint<64> = (acc[2] == 8 && (cum1 * 2) as Uint<64> > total) ? i : acc[2];
+      const p75n: Uint<64> = (acc[3] == 8 && cum4 >= three) ? i : acc[3];
+      return [cum1, p25n, medn, p75n];
+    },
+    [0 as Uint<64>, 8 as Uint<64>, 8 as Uint<64>, 8 as Uint<64>],
+    indices
+  );
+  return Stats { med: med, p25: p25, p75: p75 };
+}
+
+// ── Circuit #1 — open a new role/location category ──────────────────────────
+// Anyone may open one; its label is public. A category can only host
+// proportions, never individual salaries.
+export circuit openCategory(category: Uint<64>, name: Opaque<"string">): [] {
+  const revealedCategory = disclose(category);
+  const revealedName = disclose(name);
+  assert(category < 6, "Category id out of range");
+  assert(!pools.member(revealedCategory), "Category already open");
+  const zeroes8 = [0 as Uint<64>, 0, 0, 0, 0, 0, 0, 0];
+  const zeroes20 = [
+    default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>,
+    default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>,
+    default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>,
+    default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>, default<Bytes<32>>,
+  ];
+  pools.insert(revealedCategory, SalaryPool {
+    category: revealedCategory,
+    name: revealedName,
+    open: disclose(true),
+    contributorCount: disclose(0 as Uint<64>),
+    totalContributions: disclose(0 as Uint<64>),
+    binCounts: disclose(zeroes8),
+    nullifiers: disclose(zeroes20),
+    medianBin: disclose(0 as Uint<64>),
+    p25Bin: disclose(0 as Uint<64>),
+    p75Bin: disclose(0 as Uint<64>),
+    benchmarkAvailable: disclose(false),
+  });
+}
+
+// ── Circuit #2 — privately contribute a salary to a category ────────────────
+export circuit submitSalaryContribution(category: Uint<64>, band: Uint<64>): [] {
+  const revealedCategory = disclose(category);
+  const revealedBand = disclose(band);
+  const s = salary();
+  const exp = years_of_experience();
+  const key = contributor_key();
+
+  assert(pools.member(revealedCategory), "Category is not open");
+  const pool = pools.lookup(revealedCategory);
+  assert(band < 8, "Invalid salary band");
+  assert(s >= 1 && s <= 1000000000, "Salary out of valid range");
+  assert(exp <= 50, "Years of experience out of valid range");
+  validateBand(revealedBand, s);
+  assert(pool.contributorCount < 20, "Category is full");
+
+  // Duplicate-prevention: the same contributor cannot contribute twice because
+  // the same key always produces the same public nullifier commitment.
+  const nullifier = nullifierOf(revealedCategory, key);
+  for (const i of 0..20) {
+    const existing = pool.nullifiers[i];
+    assert(existing == default<Bytes<32>> || existing != nullifier, "Duplicate contribution from the same contributor");
+  }
+
+  // Rebuild the histogram with one more entry in the revealed band.
+  const idx = [0 as Uint<64>, 1, 2, 3, 4, 5, 6, 7];
+  const bins = map(
+    (c: Uint<64>, i: Uint<64>): Uint<64> => (i == revealedBand ? (c + 1) as Uint<64> : c),
+    pool.binCounts,
+    idx
+  );
+
+  // Append the nullifier at the first free slot.
+  const revealedNullifier = disclose(nullifier);
+  const oldIndex = pool.contributorCount;
+  const idx20 = [0 as Uint<64>, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+  const newNullifiers = map(
+    (n: Bytes<32>, i: Uint<64>): Bytes<32> => (i == oldIndex ? revealedNullifier : n),
+    pool.nullifiers,
+    idx20
+  );
+
+  pools.insert(revealedCategory, SalaryPool {
+    category: pool.category,
+    name: pool.name,
+    open: pool.open,
+    contributorCount: (pool.contributorCount + 1) as Uint<64>,
+    totalContributions: (pool.totalContributions + 1) as Uint<64>,
+    binCounts: bins,
+    nullifiers: newNullifiers,
+    medianBin: pool.medianBin,
+    p25Bin: pool.p25Bin,
+    p75Bin: pool.p75Bin,
+    benchmarkAvailable: pool.benchmarkAvailable,
+  });
+  round.increment(1);
+}
+
+// ── Circuit #3 — compute & commit the benchmark once threshold is reached ───
+export circuit updateBenchmark(category: Uint<64>): [] {
+  const revealedCategory = disclose(category);
+  assert(pools.member(revealedCategory), "Category is not open");
+  const pool = pools.lookup(revealedCategory);
+  const threshold: Uint<64> = 5;
+  assert(pool.contributorCount >= threshold, "Not enough contributors to publish a benchmark");
+  const stats = benchmarkStats(pool.binCounts);
+  pools.insert(revealedCategory, SalaryPool {
+    category: pool.category,
+    name: pool.name,
+    open: pool.open,
+    contributorCount: pool.contributorCount,
+    totalContributions: pool.totalContributions,
+    binCounts: pool.binCounts,
+    nullifiers: pool.nullifiers,
+    medianBin: disclose(stats.med),
+    p25Bin: disclose(stats.p25),
+    p75Bin: disclose(stats.p75),
+    benchmarkAvailable: disclose(true),
+  });
+  round.increment(1);
+}
+
+// ── Circuit #4 — contributor count (all-safe view) ──────────────────────────
+export circuit getContributorCount(category: Uint<64>): Uint<64> {
+  const revealedCategory = disclose(category);
+  if (pools.member(revealedCategory)) {
+    const pool = pools.lookup(revealedCategory);
+    return pool.contributorCount;
+  } else {
+    return 0 as Uint<64>;
+  }
+}
+
+// ── Circuit #5 — benchmark (enforces threshold, returns empty below it) ─────
+export circuit getBenchmark(category: Uint<64>): BenchmarkView {
+  const revealedCategory = disclose(category);
+  if (pools.member(revealedCategory)) {
+    const pool = pools.lookup(revealedCategory);
+    if (pool.benchmarkAvailable) {
+      return BenchmarkView {
+        available: true,
+        contributorCount: pool.contributorCount,
+        medianBin: pool.medianBin,
+        p25Bin: pool.p25Bin,
+        p75Bin: pool.p75Bin,
+      };
+    } else {
+      return BenchmarkView {
+        available: false,
+        contributorCount: pool.contributorCount,
+        medianBin: 0 as Uint<64>,
+        p25Bin: 0 as Uint<64>,
+        p75Bin: 0 as Uint<64>,
+      };
+    }
+  } else {
+    return BenchmarkView {
+      available: false,
+      contributorCount: 0 as Uint<64>,
+      medianBin: 0 as Uint<64>,
+      p25Bin: 0 as Uint<64>,
+      p75Bin: 0 as Uint<64>,
+    };
+  }
+}

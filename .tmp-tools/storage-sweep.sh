@@ -1,0 +1,16 @@
+#!/bin/bash
+cd /home/midnightshri/Employee-Place
+echo "=== storage-clearing calls in frontend/src ==="
+grep -rn -E "\.clear\(|removeItem|deleteDatabase|localStorage|sessionStorage|indexedDB" frontend/src || echo "NONE"
+echo ""
+echo "=== storage-clearing calls in root src (excluding node tooling) ==="
+grep -rn -E "\.clear\(|deleteDatabase|localStorage|sessionStorage" src || echo "NONE"
+echo ""
+echo "=== console.* in frontend/src ==="
+grep -rn "console\." frontend/src || echo "NONE"
+echo ""
+echo "=== sensitive data logging in frontend/src ==="
+grep -rn -E "log\(|\.log" frontend/src/lib frontend/src/hooks frontend/src/components | grep -v -E "bi|path|// " || echo "NONE"
+echo ""
+echo "=== provider clear usage anywhere (app code) ==="
+grep -rn -E "privateStateProvider\.clear|\.clearSigningKeys|\.remove\(|\.removeSigningKey" frontend/src src || echo "NONE"

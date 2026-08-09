@@ -1,0 +1,94 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+struct Pool {
+  category: Uint<64>,
+  contributorCount: Uint<64>,
+  binCounts: Vector<8, Uint<64>>,
+  medianBin: Uint<64>,
+  p25Bin: Uint<64>,
+  p75Bin: Uint<64>,
+  benchmarkAvailable: Boolean,
+}
+
+export ledger pools: Map<Uint<64>, Pool>;
+export ledger seq: Counter;
+
+constructor() {
+  seq.increment(1);
+}
+
+export pure circuit medianOf(pool: Pool): Uint<64> {
+  const bins = pool.binCounts;
+  const total = fold(
+    (acc: Uint<64>, v: Uint<64>): Uint<64> => (acc + v) as Uint<64>,
+    0 as Uint<64>,
+    bins
+  );
+  const indices = [0 as Uint<64>, 1 as Uint<64>, 2 as Uint<64>, 3 as Uint<64>, 4 as Uint<64>, 5 as Uint<64>, 6 as Uint<64>, 7 as Uint<64>];
+  const res = fold(
+    (acc: [Uint<64>, Uint<64>], i: Uint<64>): [Uint<64>, Uint<64>] => {
+      const cum1 = (acc[0] + bins[i]) as Uint<64>;
+      const cand = (acc[1] == 8 as Uint<64> && (cum1 * 2) as Uint<64> > total) ? i : acc[1];
+      return [cum1, cand];
+    },
+    [0 as Uint<64>, 8 as Uint<64>],
+    indices
+  );
+  return res[1];
+}
+
+export circuit openCategory(category: Uint<64>): [] {
+  assert(category < 6, "Invalid category");
+  assert(!pools.member(disclose(category)), "already open");
+  const init: Pool = Pool {
+    category: disclose(category),
+    contributorCount: disclose(0 as Uint<64>),
+    binCounts: disclose([0 as Uint<64>, 0, 0, 0, 0, 0, 0, 0]),
+    medianBin: disclose(0 as Uint<64>),
+    p25Bin: disclose(0 as Uint<64>),
+    p75Bin: disclose(0 as Uint<64>),
+    benchmarkAvailable: disclose(false),
+  };
+  pools.insert(disclose(category), init);
+}
+
+export circuit go(): [] {
+  seq.increment(1);
+  const sample = Pool {
+    category: 1 as Uint<64>,
+    contributorCount: 3 as Uint<64>,
+    binCounts: [1 as Uint<64>, 2, 0, 0, 0, 0, 0, 0],
+    medianBin: 0 as Uint<64>,
+    p25Bin: 0 as Uint<64>,
+    p75Bin: 0 as Uint<64>,
+    benchmarkAvailable: false,
+  };
+  const m = medianOf(sample);
+  assert(m == 1 as Uint<64>, "median bin wrong");
+  openCategory(3);
+  submit(3, 2);
+}
+
+export circuit submit(category: Uint<64>, bin: Uint<64>): [] {
+  const revealedCat = disclose(category);
+  const revealedBin = disclose(bin);
+  const p = pools.lookup(revealedCat);
+  const idxs = [0 as Uint<64>, 1 as Uint<64>, 2 as Uint<64>, 3 as Uint<64>, 4 as Uint<64>, 5 as Uint<64>, 6 as Uint<64>, 7 as Uint<64>];
+  const updatedBins = map(
+    (c: Uint<64>, i: Uint<64>): Uint<64> => (i == revealedBin ? (c + 1) as Uint<64> : c),
+    p.binCounts,
+    idxs
+  );
+  const next: Pool = Pool {
+    category: p.category,
+    contributorCount: (p.contributorCount + 1) as Uint<64>,
+    binCounts: updatedBins,
+    medianBin: p.medianBin,
+    p25Bin: p.p25Bin,
+    p75Bin: p.p75Bin,
+    benchmarkAvailable: p.benchmarkAvailable,
+  };
+  pools.insert(revealedCat, next);
+}

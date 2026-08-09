@@ -1,0 +1,19 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+module Cfg {
+  export const MIN: Uint<64> = 5;
+}
+
+export ledger n: Counter;
+
+constructor() {
+  n.increment(1);
+}
+
+export circuit tick(): [] {
+  const min = Cfg.MIN;
+  assert(min == 5, "no");
+  n.increment(1);
+}
