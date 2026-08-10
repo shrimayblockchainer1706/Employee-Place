@@ -304,13 +304,3 @@ Coming soon — demo recording pending.
 
 `package.json` declares **MIT**, but note that **no `LICENSE` file is included yet** — a `LICENSE` file should be added before publishing the repository publicly. A license can also be added later, in which case this section should be updated to match.
 
----
-
-## Submission checklist
-
-- [ ] Public GitHub repository
-- [ ] README complete
-- [ ] Live demo URL
-- [ ] Demo video
-- [ ] Wallet connect demonstrated
-- [ ] Successful circuit/contract call demonstrated
