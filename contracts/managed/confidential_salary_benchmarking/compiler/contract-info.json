@@ -1,0 +1,288 @@
+{
+  "compiler-version": "0.31.1",
+  "language-version": "0.23.0",
+  "runtime-version": "0.16.0",
+  "circuits": [
+    {
+      "name": "openCategory",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "category",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "name",
+          "type": {
+            "type-name": "Opaque",
+            "tsType": "string"
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "submitSalaryContribution",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "category",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        },
+        {
+          "name": "band",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "updateBenchmark",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "category",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "getContributorCount",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "category",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      }
+    },
+    {
+      "name": "getBenchmark",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "category",
+          "type": {
+            "type-name": "Uint",
+            "maxval": 18446744073709551615
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Struct",
+        "name": "BenchmarkView",
+        "elements": [
+          {
+            "name": "available",
+            "type": {
+              "type-name": "Boolean"
+            }
+          },
+          {
+            "name": "contributorCount",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "medianBin",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "p25Bin",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "p75Bin",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "witnesses": [
+    {
+      "name": "contributor_key",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "salary",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 340282366920938463463374607431768211455
+      }
+    },
+    {
+      "name": "years_of_experience",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      }
+    }
+  ],
+  "contracts": [
+  ],
+  "ledger": [
+    {
+      "name": "pools",
+      "index": 0,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      },
+      "value": {
+        "type-name": "Struct",
+        "name": "SalaryPool",
+        "elements": [
+          {
+            "name": "category",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "name",
+            "type": {
+              "type-name": "Opaque",
+              "tsType": "string"
+            }
+          },
+          {
+            "name": "open",
+            "type": {
+              "type-name": "Boolean"
+            }
+          },
+          {
+            "name": "contributorCount",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "totalContributions",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "binCounts",
+            "type": {
+              "type-name": "Vector",
+              "length": 8,
+              "type": {
+                "type-name": "Uint",
+                "maxval": 18446744073709551615
+              }
+            }
+          },
+          {
+            "name": "nullifiers",
+            "type": {
+              "type-name": "Vector",
+              "length": 20,
+              "type": {
+                "type-name": "Bytes",
+                "length": 32
+              }
+            }
+          },
+          {
+            "name": "medianBin",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "p25Bin",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "p75Bin",
+            "type": {
+              "type-name": "Uint",
+              "maxval": 18446744073709551615
+            }
+          },
+          {
+            "name": "benchmarkAvailable",
+            "type": {
+              "type-name": "Boolean"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "round",
+      "index": 1,
+      "exported": true,
+      "storage": "Counter"
+    }
+  ]
+}
