@@ -8,7 +8,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { connectToWallet, isWalletConnectorPresent } from '../lib/wallet';
+import { connectToWallet, isWalletConnectorPresent, collectWalletDiagnostics } from '../lib/wallet';
+import type { WalletDiagnostics } from '../lib/wallet';
 import {
   connectToContract,
   deployFreshContract,
@@ -45,6 +46,8 @@ export interface MidnightContextValue {
   readonly providers: SalaryPoolProviders | null;
   readonly contract: ContractHandle | null;
   readonly ledger: LedgerView | null;
+  /** Read-only snapshot of the connected wallet's network/DUST/balance state. */
+  readonly walletDiagnostics: WalletDiagnostics | null;
   readonly isBusy: boolean;
   readonly busyLabel: string | null;
   readonly connect: (networkId: string, contractAddress: string | null) => Promise<void>;
@@ -80,6 +83,7 @@ export function MidnightServiceProvider({ children }: { children: ReactNode }) {
   const [providers, setProviders] = useState<SalaryPoolProviders | null>(null);
   const [contract, setContract] = useState<ContractHandle | null>(null);
   const [ledger, setLedger] = useState<LedgerView | null>(null);
+  const [walletDiagnostics, setWalletDiagnostics] = useState<WalletDiagnostics | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
 
@@ -155,6 +159,11 @@ export function MidnightServiceProvider({ children }: { children: ReactNode }) {
         const builtProviders = await buildProvidersFromConnectedAPI(conn.connectedAPI, conn.shieldedAddresses);
         providersRef.current = builtProviders;
 
+        // Read the wallet's own network/DUST/balance state (defensive: never
+        // breaks the connect flow if a method is unavailable).
+        const diagnostics = await collectWalletDiagnostics(conn.connectedAPI);
+        if (mountedRef.current) setWalletDiagnostics(diagnostics);
+
         if (address) {
           setBusyLabel('Connecting to the deployed contract…');
           const deployed = await connectToContract(builtProviders, address);
@@ -219,6 +228,7 @@ export function MidnightServiceProvider({ children }: { children: ReactNode }) {
     setContract(null);
     setContractAddress(null);
     setLedger(null);
+    setWalletDiagnostics(null);
     setWalletAddress('');
     setNetworkName(null);
     setNetworkConfigured(false);
@@ -366,6 +376,7 @@ export function MidnightServiceProvider({ children }: { children: ReactNode }) {
       providers,
       contract,
       ledger,
+      walletDiagnostics,
       isBusy,
       busyLabel,
       connect,
@@ -390,6 +401,7 @@ export function MidnightServiceProvider({ children }: { children: ReactNode }) {
       providers,
       contract,
       ledger,
+      walletDiagnostics,
       isBusy,
       busyLabel,
       connect,

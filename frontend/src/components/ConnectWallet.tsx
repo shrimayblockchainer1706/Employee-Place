@@ -15,6 +15,7 @@ export default function ConnectWallet() {
     networkName,
     contractAddress,
     walletAddress,
+    walletDiagnostics,
     isBusy,
     busyLabel,
     connect,
@@ -48,6 +49,8 @@ export default function ConnectWallet() {
 
   const shortAddr = (addr: string) =>
     addr.length > 24 ? `${addr.slice(0, 6)}…${addr.slice(-6)}` : addr;
+
+  const noDust = walletDiagnostics && walletDiagnostics.dustBalance !== undefined && walletDiagnostics.dustBalance === 0n;
 
   return (
     <section className="panel connect-panel">
@@ -117,6 +120,50 @@ export default function ConnectWallet() {
               Disconnect
             </button>
           </div>
+
+          {walletDiagnostics && (
+            <div className="wallet-status">
+              <h3>Wallet status</h3>
+              <ul className="status-list">
+                <li>
+                  Wallet network: <strong>{walletDiagnostics.networkId || '—'}</strong>
+                </li>
+                <li>
+                  DUST balance:{' '}
+                  <strong>
+                    {walletDiagnostics.dustBalance === undefined
+                      ? '—'
+                      : walletDiagnostics.dustBalance.toLocaleString()}
+                  </strong>
+                  {walletDiagnostics.dustCap !== undefined && (
+                    <span className="muted"> (cap {walletDiagnostics.dustCap.toLocaleString()})</span>
+                  )}
+                </li>
+                <li>
+                  tNIGHT (unshielded):{' '}
+                  <strong>
+                    {walletDiagnostics.tNight === undefined
+                      ? '—'
+                      : walletDiagnostics.tNight.toLocaleString()}
+                  </strong>
+                </li>
+                {walletDiagnostics.indexerUri && (
+                  <li className="muted">Wallet indexer: {walletDiagnostics.indexerUri}</li>
+                )}
+                {walletDiagnostics.substrateNodeUri && (
+                  <li className="muted">Wallet node: {walletDiagnostics.substrateNodeUri}</li>
+                )}
+              </ul>
+              {noDust && (
+                <p className="error">
+                  DUST balance is 0. The wallet generates DUST from its tNIGHT balance — open the
+                  wallet extension and wait for DUST to be generated before opening a category or
+                  contributing.
+                </p>
+              )}
+            </div>
+          )}
+
           {busyLabel && <p className="busy">{busyLabel}</p>}
         </div>
       )}

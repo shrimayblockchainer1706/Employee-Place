@@ -57,6 +57,14 @@ export function humanizeError(error: unknown): string {
   if (message.toLowerCase().includes('not enough dust')) {
     return 'Your wallet does not have enough DUST tokens to pay the transaction fee.';
   }
+
+  // Midnight node rejections surface as "Invalid Transaction: Custom error: <N>".
+  // Decode the well-known DUST fee-leg failures into actionable guidance while
+  // keeping the raw code visible for debugging. The browser wallet (extension)
+  // builds the DUST fee spend internally, so 170/171 reflect the wallet's DUST
+  // state not being in sync with the chain the transaction targets.
+  const nodeRejection = matchNodeRejection(message);
+  if (nodeRejection) return nodeRejection;
   if (message.toLowerCase().includes('insufficient funds')) {
     return 'Your wallet does not have enough tNIGHT to pay the transaction fee.';
   }
@@ -107,6 +115,47 @@ export function humanizeError(error: unknown): string {
   }
 
   return message;
+}
+
+/**
+ * Midnight node rejections arrive wrapped as `Invalid Transaction: Custom error: <N>`
+ * (code `1010` is the Substrate envelope; `N` is the Midnight `LedgerApiError` variant).
+ * This maps the DUST fee-leg codes seen in this app into a message a user can act on,
+ * while still preserving the underlying code and message for debugging.
+ */
+const NODE_ERROR_170_MSG =
+  'The network rejected the transaction because the DUST fee spend proof was invalid ' +
+  '(Custom error: 170 — InvalidDustSpendProof). This almost always means the wallet is ' +
+  'trying to spend DUST with stale or out-of-sync wallet state. Open the wallet extension, ' +
+  'confirm it is on the Preview network and fully synced to the chain tip, confirm its ' +
+  'DUST balance is greater than zero (the wallet generates DUST from tNIGHT), then retry. ' +
+  'The app builds a fresh transaction on every attempt, so a simple retry is safe. ' +
+  'If it keeps failing, fully reset/re-sync the wallet extension’s local state and reconnect.';
+
+const NODE_ERROR_171_MSG =
+  'The network rejected the transaction because the wallet tried to spend DUST outside its ' +
+  'validity window (Custom error: 171 — OutOfDustValidityWindow). The wallet’s cached DUST ' +
+  'state has gone stale while it was idle. Open the wallet extension, let it fully re-sync ' +
+  'to the Preview chain tip, then retry.';
+
+function matchNodeRejection(message: string): string | null {
+  // Matches `Custom error: 170` (optionally with spaces around the colon).
+  const match = /Custom error:\s*(\d+)/.exec(message);
+  if (!match) return null;
+  const code = match[1];
+  const technical = `Custom error: ${code}`;
+
+  switch (code) {
+    case '170':
+      return `${NODE_ERROR_170_MSG}\n\n(Technical detail: ${technical})`;
+    case '171':
+      return `${NODE_ERROR_171_MSG}\n\n(Technical detail: ${technical})`;
+    default:
+      return (
+        `The network rejected the transaction (${technical}). ` +
+        'Check the network and wallet status, then retry — the app builds a fresh transaction each time.'
+      );
+  }
 }
 
 function extractMessage(err: unknown): string {

@@ -17,12 +17,17 @@
  * The network ids and their endpoint defaults mirror the repo's Node tooling
  * (`src/network.ts`); they are the SAME values the wallet reports/expects
  * (`undeployed` / `preview` / `preprod`). Nothing here is invented.
+ *
+ * CANONICAL NETWORK: Preview is the default/canonical browser dApp network
+ * (`DEFAULT_NETWORK_ID`). `undeployed` is the local CLI/devnet-only network and
+ * is never selected automatically by the browser flow.
  */
 import { setNetworkId as sdkSetNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 
 export type NetworkId = 'undeployed' | 'preview' | 'preprod';
 
-export const NETWORK_IDS: readonly NetworkId[] = ['undeployed', 'preview', 'preprod'] as const;
+/** Network ids ordered with the canonical browser network (preview) first. */
+export const NETWORK_IDS: readonly NetworkId[] = ['preview', 'preprod', 'undeployed'] as const;
 
 export interface FrontendNetworkConfig {
   readonly networkId: NetworkId;
@@ -67,7 +72,9 @@ export const DEFAULT_NETWORK_ID: NetworkId = 'preview';
 
 /**
  * Resolve an arbitrary input to a valid {@link NetworkId}. Anything that is not
- * a known id falls back to `DEFAULT_NETWORK_ID` (never an invented value).
+ * a known id falls back to `DEFAULT_NETWORK_ID` (Preview). Notably this never
+ * falls back on `undeployed`: the browser dApp must never silently drop from
+ * Preview onto the CLI devnet.
  */
 export function resolveNetworkId(value: string | null | undefined): NetworkId {
   const trimmed = value?.trim() ?? '';

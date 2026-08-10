@@ -195,6 +195,31 @@ button.primary:hover:not(:disabled) {
   margin: 6px 0;
 }
 
+.wallet-status {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+}
+
+.wallet-status h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+.status-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+.status-list li {
+  margin: 4px 0;
+}
+
 .badge {
   display: inline-block;
   padding: 3px 10px;
@@ -234,6 +259,7 @@ button.primary:hover:not(:disabled) {
   color: var(--danger);
   border-radius: 8px;
   padding: 10px 12px;
+  white-space: pre-line;
   margin: 12px 0 0;
   font-size: 14px;
 }
