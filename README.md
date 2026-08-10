@@ -246,7 +246,7 @@ Vercel example: framework preset **Vite**, root directory `frontend`, build comm
 
 ## Live Demo
 
-Coming soon — deployment pending.
+**[🌐 Open the live application](https://employee-place-git-main-shrimayblockchainer1706s-projects.vercel.app/)**
 
 ---
 
