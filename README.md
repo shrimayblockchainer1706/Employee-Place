@@ -252,7 +252,7 @@ Coming soon — deployment pending.
 
 ## Demo Video
 
-Coming soon — demo recording pending.
+[▶️ Watch the Employee-Place demo video](./EmployeePlace.mp4)
 
 ---
 
