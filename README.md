@@ -143,7 +143,7 @@ All variables are read from `frontend/.env.local` (copy `frontend/.env.example`)
 | Variable | Example / placeholder | Description |
 |---|---|---|
 | `VITE_NETWORK` | `preview` | Network the dApp requests from the wallet. `preview` is the canonical default; `preprod` and `undeployed` (local devnet) are also supported. |
-| `VITE_CONTRACT_ADDRESS` | `<DEPLOYED_CONTRACT_ADDRESS>` | Address of the deployed contract to auto-connect to. Leave empty to use the in-app "Connect" flow / deploy panel. |
+| `VITE_CONTRACT_ADDRESS` | `fedc2b13aab47c0a625eff4430caf5db618889ea85fec31934b1ada8cbc3c3da` | Address of the deployed contract to auto-connect to (deployed on the **Midnight Preview** network). Leave empty to use the in-app "Connect" flow / deploy panel. |
 | `VITE_INDEXER_URL` | `https://indexer.preview.midnight.network/api/v4/graphql` | GraphQL endpoint used to read live contract state. Defaults to the wallet's configured indexer if unset. |
 | `VITE_INDEXER_WS_URL` | `wss://indexer.preview.midnight.network/api/v4/graphql/ws` | Indexer WebSocket endpoint (public-data provider). |
 | `VITE_PROOF_SERVER_URL` | `http://127.0.0.1:6305` | Local Midnight proof server used to prove the custom contract circuits (CORS enabled by `compose.yml`). |
@@ -232,10 +232,17 @@ These are engineering diagnostics, not part of the shipped application.
 
 The frontend is a standard static Vite build — deploy `frontend/dist` to any static host (Vercel, Netlify, Cloudflare Pages, etc.).
 
+**Deployed smart contract verification** — the Midnight contract below is live on the **Midnight Preview** network:
+
+- **Network:** Midnight Preview
+- **Contract address:** `fedc2b13aab47c0a625eff4430caf5db618889ea85fec31934b1ada8cbc3c3da`
+
+![Deployed Midnight Preview smart contract verification](docs/images/deployed-contract.png)
+
 Before building, note the requirements:
 
 1. **Compile the contract** so design-time assets exist: `npm run compile` (produces `contracts/managed/…`, copied into the build by `vite-plugin-static-copy` at `/contract/compiled/…`).
-2. **Set the `VITE_*` variables at build time** on the host (see Environment variables above) — e.g. `VITE_NETWORK=preview`, `VITE_CONTRACT_ADDRESS=<DEPLOYED_CONTRACT_ADDRESS>`, plus indexer and proof-server URLs. `Vite` bakes `VITE_*` values into the bundle.
+2. **Set the `VITE_*` variables at build time** on the host (see Environment variables above) — e.g. `VITE_NETWORK=preview`, `VITE_CONTRACT_ADDRESS=fedc2b13aab47c0a625eff4430caf5db618889ea85fec31934b1ada8cbc3c3da`, plus indexer and proof-server URLs. `Vite` bakes `VITE_*` values into the bundle.
 3. **Build:** `npm --prefix frontend run build`, then deploy `frontend/dist`.
 
 Vercel example: framework preset **Vite**, root directory `frontend`, build command `npm run build`, output directory `dist` — or simply use a static deploy of `frontend/dist`.
