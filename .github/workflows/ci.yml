@@ -1,0 +1,53 @@
+name: CI
+
+# Continuous integration for Employee-Place (Confidential Salary Benchmarking
+# Pool). Runs on every push and pull request: installs dependencies, checks
+# types, builds the production frontend, and runs the full test suite.
+#
+# NOTE: The workflow intentionally does NOT run `npm run compile`. The Compact
+# compiler is not installable in CI; the compiled contract bundle under
+# contracts/managed/confidential_salary_benchmarking is committed to the
+# repository (see .gitignore) and is copied into the frontend build by Vite.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    name: Install · typecheck · build · test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: TypeScript check (root tooling + contract tests)
+        run: npm run build
+
+      - name: TypeScript check (frontend)
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend (production)
+        run: npm run frontend:build
+
+      - name: Run tests
+        run: npm test
