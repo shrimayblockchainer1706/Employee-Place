@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "compile": "compact compile contracts/confidential_salary_benchmarking.compact contracts/managed/confidential_salary_benchmarking",
-    "build": "npx tsc --noEmit || true",
+    "build": "npx tsc --noEmit",
     "setup": "npx tsx src/setup.ts",
     "deploy": "npx tsx src/deploy.ts",
     "cli": "npx tsx src/cli.ts",
