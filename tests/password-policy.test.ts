@@ -8,7 +8,7 @@
  * the SDK would reject would brick the export path later.
  */
 import { describe, expect, it } from 'vitest';
-import { validatePassword } from '../frontend/node_modules/@midnight-ntwrk/midnight-js-utils/dist/index.mjs';
+import { validatePassword } from '@midnight-ntwrk/midnight-js-utils';
 import {
   MIN_BACKUP_PASSWORD_LENGTH,
   MIN_PASSWORD_CHARACTER_CLASSES,

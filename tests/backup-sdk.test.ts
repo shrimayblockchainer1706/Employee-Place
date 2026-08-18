@@ -19,8 +19,8 @@ import { it, describe, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { Level } from '../frontend/node_modules/level/index.js';
-import { levelPrivateStateProvider } from '../frontend/node_modules/@midnight-ntwrk/midnight-js-level-private-state-provider/dist/index.mjs';
+import { Level } from 'level';
+import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 
 const STORAGE_PASSWORD = 'K7!pTw9@zQ4#mN2&xR5';
 const EXPORT_PASSWORD = 'Qu9#bF7@dL2!eR5&tW1';
