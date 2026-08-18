@@ -298,7 +298,7 @@ Use the actual UI in the layout shown after connecting:
 ### Submitting (Level 3 artifacts)
 - **Demo video:** [`EmployeePlace.mp4`](./EmployeePlace.mp4) — a 1-minute walkthrough of wallet connect → open category → private contribution → threshold → published benchmark.
 - **Deployed-contract screenshot:** [`docs/images/deployed-contract.png`](docs/images/deployed-contract.png) — verification of the live Midnight Preview contract.
-- **Test-output screenshot:** capture the terminal output of `npm test` (7 files / 61 tests passing) for the submission.
+- **Test-results screenshot:** [`docs/screenshots/level3-tests.png`](docs/screenshots/level3-tests.png) — terminal output of `npm test` (7 files / 61 tests passing).
 
 ## Repository structure
 
