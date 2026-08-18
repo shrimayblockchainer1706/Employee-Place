@@ -19,6 +19,7 @@ export function uint8ArrayToHex(bytes: Uint8Array): string {
 export function hexToUint8Array(hex: string): Uint8Array {
   const cleaned = hex.replace(/^0x/, '');
   if (cleaned.length % 2 !== 0) throw new Error('Invalid hex string');
+  if (!/^[0-9a-fA-F]*$/.test(cleaned)) throw new Error('Invalid hex string');
   const out = new Uint8Array(cleaned.length / 2);
   for (let i = 0; i < out.length; i++) {
     out[i] = parseInt(cleaned.slice(i * 2, i * 2 + 2), 16);
