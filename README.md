@@ -231,9 +231,7 @@ The frontend is a standard static Vite build — deploy `frontend/dist` to any s
 ![Deployed Midnight Preview smart contract verification](docs/images/deployed-contract.png)
 
 LIVE DEMO:
-<INSERT_FINAL_LIVE_DEMO_URL>
-
-> The current live deployment is hosted on **Vercel**: <https://employee-place-git-main-shrimayblockchainer1706s-projects.vercel.app/>. Replace the placeholder above with the final demo URL for the Level 3 submission.
+<https://employee-place-git-main-shrimayblockchainer1706s-projects.vercel.app/>
 
 Before building for a host:
 
@@ -252,12 +250,12 @@ A GitHub Actions workflow runs on every **push** to `main` and every **pull requ
 1. Checks out the repository.
 2. Sets up Node.js 22 with npm caching (root + frontend lockfiles).
 3. Installs root and frontend dependencies (`npm ci`).
-4. Runs the root TypeScript check (`npm run build`).
-5. Runs the frontend TypeScript check (`npm --prefix frontend run typecheck`).
-6. Builds the production frontend (`npm run frontend:build`).
-7. Runs the full test suite (`npm test`).
-
-The workflow does **not** run `npm run compile` — the Compact compiler is not installable in CI, and the compiled contract bundle (`contracts/managed/…`) is committed to the repository precisely so CI can build and test without it.
+4. Installs the official Midnight Compact devtools and selects Compact toolchain 0.31.1.
+5. Compiles the Compact contract (`npm run compile`).
+6. Runs the root TypeScript check (`npm run build`).
+7. Runs the frontend TypeScript check (`npm --prefix frontend run typecheck`).
+8. Builds the production frontend (`npm run frontend:build`).
+9. Runs the full test suite (`npm test`).
 
 [![CI](https://github.com/shrimayblockchainer1706/Employee-Place/actions/workflows/ci.yml/badge.svg)](https://github.com/shrimayblockchainer1706/Employee-Place/actions/workflows/ci.yml)
 
