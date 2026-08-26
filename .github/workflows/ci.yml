@@ -1,13 +1,9 @@
 name: CI
 
 # Continuous integration for Employee-Place (Confidential Salary Benchmarking
-# Pool). Runs on every push and pull request: installs dependencies, checks
-# types, builds the production frontend, and runs the full test suite.
-#
-# NOTE: The workflow intentionally does NOT run `npm run compile`. The Compact
-# compiler is not installable in CI; the compiled contract bundle under
-# contracts/managed/confidential_salary_benchmarking is committed to the
-# repository (see .gitignore) and is copied into the frontend build by Vite.
+# Pool). Runs on every push and pull request: installs dependencies, compiles
+# the Compact contract, checks types, builds the production frontend, and runs
+# the full test suite.
 
 on:
   push:
@@ -38,6 +34,20 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Install Midnight Compact devtools
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install Compact toolchain 0.31.1
+        run: |
+          compact update 0.31
+          compact --version
+          compact compile --version
+
+      - name: Compile Compact contract
+        run: npm run compile
 
       - name: TypeScript check (root tooling + contract tests)
         run: npm run build
