@@ -77,7 +77,7 @@ export default function PoolsView() {
                 })}
               </div>
 
-              {reached ? (
+              {reached && (
                 <div className="quantiles">
                   <div>
                     <span className="quant-label">25th percentile</span>
@@ -91,14 +91,17 @@ export default function PoolsView() {
                     <span className="quant-label">75th percentile</span>
                     <strong>{bandLabel(pool.p75Bin)}</strong>
                   </div>
-                  <button
-                    onClick={() => void updateBenchmarkFor(pool.category)}
-                    disabled={isBusy}
-                    title="Recompute and publish the quantile bands"
-                  >
-                    Recompute benchmark
-                  </button>
                 </div>
+              )}
+
+              {total >= MIN_CONTRIBUTORS ? (
+                <button
+                  onClick={() => void updateBenchmarkFor(pool.category)}
+                  disabled={isBusy}
+                  title="Recompute and publish the quantile bands"
+                >
+                  Recompute benchmark
+                </button>
               ) : (
                 <p className="muted">
                   The benchmark is not published until at least {MIN_CONTRIBUTORS} contributions are in — this
