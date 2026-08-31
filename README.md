@@ -294,7 +294,9 @@ Use the actual UI in the layout shown after connecting:
 - Below the threshold, a message explains that the benchmark is withheld to keep individual salaries anonymous.
 
 ### Submitting (Level 3 artifacts)
-- **Demo video:** [`EmployeePlace.mp4`](./EmployeePlace.mp4) — a 1-minute walkthrough of wallet connect → open category → private contribution → threshold → published benchmark.
+- **Demo video (current):** [`Salary-2.mp4`](./Salary-2.mp4) — an updated walkthrough of wallet connect → open category → private contribution → threshold → published benchmark, recorded after the live demo link bug was fixed so the app works end-to-end.
+  > **Note:** the original submission video showed the app in a state where an application bug caused the live demo to fail when accessed. This has been fixed — see the updated demo video above showing the app working correctly end-to-end. The original video is retained below for reference.
+- **Demo video (v1, original submission):** [`EmployeePlace.mp4`](./EmployeePlace.mp4) — the original 1-minute walkthrough of wallet connect → open category → private contribution → threshold → published benchmark, retained for reference.
 - **Deployed-contract screenshot:** [`docs/images/deployed-contract.png`](docs/images/deployed-contract.png) — verification of the live Midnight Preview contract.
 - **Test-results screenshot:** [`docs/screenshots/level3-tests.png`](docs/screenshots/level3-tests.png) — terminal output of `npm test` (7 files / 61 tests passing).
 
